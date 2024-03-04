@@ -15,32 +15,41 @@ void switch_tag(enum tags *t) {
     }
 }
 
-void flush_the_queue(std::queue<int> q, int sending_rank, int sending_tag) {
+void send(int number, int sending_rank, const tags &sending_tag, bool print) {
+    if (print) {
+        printf("%d", number);
+    } else{
+        MPI_Send(&number, 1, MPI_INT, sending_rank, sending_tag, MPI_COMM_WORLD);
+    }
+}
+
+void flush_the_queue(std::queue<int> q, int sending_rank, const tags sending_tag, bool print) {
     while (!q.empty()) {
-        MPI_Send(&q.front(), 1, MPI_INT, sending_rank, sending_tag, MPI_COMM_WORLD);
+        send(q.front(), sending_rank, sending_tag, print);
         q.pop();
     }
     int number = -1;
-    MPI_Send(&number, 1, MPI_INT, sending_rank, sending_tag, MPI_COMM_WORLD);
+    send(number, sending_rank, sending_tag, print);
 }
 
-void merge_sort_step(int rank, int &number, const tags &receive_tag, const tags &sending_tag, std::queue<int> &left) {
+// todo print->dry run?
+void merge_sort_step(int rank, int &number, const tags &receive_tag, const tags &sending_tag, std::queue<int> &left, bool print) {
     if (receive_tag == LEFT) {
         left.push(number);
     } else {
         while (!left.empty() && left.front() < number) {
-            int send = left.front();
+            int s = left.front();
             left.pop();
-            MPI_Send(&send, 1, MPI_INT, rank + 1, sending_tag, MPI_COMM_WORLD);
+            send(s, rank + 1, sending_tag, print);
         }
-        MPI_Send(&number, 1, MPI_INT, rank + 1, sending_tag, MPI_COMM_WORLD);
+        send(number, rank + 1, sending_tag, print);
     }
 }
 
 int process_received_num(int rank, tags &sending_tag, std::queue<int> &left, int &number, tags &receive_tag) {
     if (number == -1) {
         if (receive_tag == RIGHT) {
-            flush_the_queue(left, rank + 1, sending_tag);
+            flush_the_queue(left, rank + 1, sending_tag, false);
             switch_tag(&sending_tag);
         }
         switch_tag(&receive_tag);
@@ -49,7 +58,22 @@ int process_received_num(int rank, tags &sending_tag, std::queue<int> &left, int
         MPI_Send(&number, 1, MPI_INT, rank + 1, LEFT, MPI_COMM_WORLD);
         return 1;
     } else {
-        merge_sort_step(rank, number, receive_tag, sending_tag, left);
+        merge_sort_step(rank, number, receive_tag, sending_tag, left, false);
+    }
+    return 0;
+}
+
+int last_rank_process_received_num(int rank, tags &sending_tag, std::queue<int> &left, int &number, tags &receive_tag) {
+    if (number == -1) {
+        if (receive_tag == RIGHT) {
+            flush_the_queue(left, rank + 1, sending_tag, true);
+            switch_tag(&sending_tag);
+        }
+        switch_tag(&receive_tag);
+    } else if (number == -2) {
+        return 1;
+    } else {
+        merge_sort_step(rank, number, receive_tag, sending_tag, left, true);
     }
     return 0;
 }
@@ -102,7 +126,9 @@ int run() {
             printf("(%d <- %d) Received number %d...\n", rank, sender_rank, number);
 
             if (rank == size - 1) {
-                return 0;
+                if (last_rank_process_received_num(rank, sending_tag, left, number, receive_tag) == 1) {
+                    return 0;
+                }
             } else {
                 if (process_received_num(rank, sending_tag, left, number, receive_tag) == 1) {
                     return 0;
