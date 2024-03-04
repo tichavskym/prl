@@ -1,5 +1,5 @@
 NUMBERS=7
-PROC=$(shell python -c "import math; print(math.ceil(math.log($(NUMBERS))/math.log(2) + 1))")
+PROC=$(shell python -c "import math; print(math.ceil(math.log($(NUMBERS))/math.log(2) + 1) + 1)")
 
 
 .PHONY: build generate run calc
@@ -13,7 +13,8 @@ generate:
 	dd if=/dev/random bs=1 count=$(NUMBERS) of=numbers 2> /dev/null
 
 run: build
-	mpirun --prefix /usr/local/share/OpenMPI  -np $(PROC) pms
+	# TODO use-hwthread-cpus is my addition to the command from assignment
+	mpirun --prefix /usr/local/share/OpenMPI --use-hwthread-cpus -np $(PROC) pms
 
 clean:
 	rm numbers pms
