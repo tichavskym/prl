@@ -3,9 +3,8 @@
 #include <cstdlib>
 #include <queue>
 
-// TODO what if i have even/odd amount of numbers
+// TODO wierd numbers of bytes, e.g 7
 enum tags {LEFT, RIGHT};
-
 
 void switch_tag(enum tags *t) {
     if (*t == LEFT) {
@@ -15,34 +14,33 @@ void switch_tag(enum tags *t) {
     }
 }
 
-void send(int number, int sending_rank, const tags &sending_tag, bool print) {
-    if (print) {
-        printf("%d", number);
-    } else{
+void send(int number, int sending_rank, const tags &sending_tag, bool dry_run) {
+    if (dry_run) {
+        printf("%d\n", number);
+    } else {
         MPI_Send(&number, 1, MPI_INT, sending_rank, sending_tag, MPI_COMM_WORLD);
     }
 }
 
-void flush_the_queue(std::queue<int> q, int sending_rank, const tags sending_tag, bool print) {
+void flush_the_queue(std::queue<int> &q, int sending_rank, const tags sending_tag, bool dry_run) {
     while (!q.empty()) {
-        send(q.front(), sending_rank, sending_tag, print);
+        send(q.front(), sending_rank, sending_tag, dry_run);
         q.pop();
     }
     int number = -1;
-    send(number, sending_rank, sending_tag, print);
+    send(number, sending_rank, sending_tag, dry_run);
 }
 
-// todo print->dry run?
-void merge_sort_step(int rank, int &number, const tags &receive_tag, const tags &sending_tag, std::queue<int> &left, bool print) {
+void merge_sort_step(int rank, int &number, const tags &receive_tag, const tags &sending_tag, std::queue<int> &left, int dry_run) {
     if (receive_tag == LEFT) {
         left.push(number);
     } else {
         while (!left.empty() && left.front() < number) {
             int s = left.front();
             left.pop();
-            send(s, rank + 1, sending_tag, print);
+            send(s, rank + 1, sending_tag, dry_run);
         }
-        send(number, rank + 1, sending_tag, print);
+        send(number, rank + 1, sending_tag, dry_run);
     }
 }
 
@@ -79,7 +77,6 @@ int last_rank_process_received_num(int rank, tags &sending_tag, std::queue<int> 
 }
 
 int run() {
-    printf("Hello, world! \n");
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -101,11 +98,11 @@ int run() {
             } else {
                 tag = RIGHT;
             }
-            printf("(%d -> %d) Sending number %d...\n", 0, 1, number);
+            // TODO debug printf("(%d -> %d) Sending number %d...\n", 0, 1, number);
             MPI_Send(&number, 1, MPI_INT, receiver_rank, tag, MPI_COMM_WORLD);
             // TODO do I wanna keep it this way or make it alternate?
             number = -1;
-            printf("(%d -> %d) Sending number %d...\n", 0, 1, number);
+            // TODO debug printf("(%d -> %d) Sending number %d...\n", 0, 1, number);
             MPI_Send(&number, 1, MPI_INT, receiver_rank, tag, MPI_COMM_WORLD);
             i++;
         }
@@ -113,19 +110,19 @@ int run() {
         MPI_Send(&number, 1, MPI_INT, receiver_rank, RIGHT, MPI_COMM_WORLD);
         MPI_Send(&number, 1, MPI_INT, receiver_rank, LEFT, MPI_COMM_WORLD);
         fclose(f);
-    } else { // TODO debugging purposes
+    } else {
         int number;
         enum tags receive_tag = LEFT;
         enum tags sending_tag = LEFT;
         std::queue<int> left;
+        int sender_rank = rank - 1;
 
         while (true) {
             MPI_Status status; // TODO check for status?
-            int sender_rank = rank - 1;
             MPI_Recv(&number, 1, MPI_INT, sender_rank, receive_tag, MPI_COMM_WORLD, &status);
-            printf("(%d <- %d) Received number %d...\n", rank, sender_rank, number);
+            // TODO debug print printf("(%d <- %d) Received number %d...\n", rank, sender_rank, number);
 
-            if (rank == size - 1) {
+            if (rank == (size - 1)) {
                 if (last_rank_process_received_num(rank, sending_tag, left, number, receive_tag) == 1) {
                     return 0;
                 }
