@@ -6,7 +6,7 @@ PROC=$(shell python -c "import math; print(math.ceil(math.log($(NUMBERS))/math.l
 
 all: build
 
-build: pms
+build:
 	mpic++ --prefix /usr/local/share/OpenMPI -o pms pms.cpp
 
 generate:
