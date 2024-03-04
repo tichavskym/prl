@@ -27,8 +27,10 @@ void flush_the_queue(std::queue<int> &q, int sending_rank, const tags sending_ta
         send(q.front(), sending_rank, sending_tag, dry_run);
         q.pop();
     }
-    int number = -1;
-    send(number, sending_rank, sending_tag, dry_run);
+    if (!dry_run) {
+        int number = -1;
+        send(number, sending_rank, sending_tag, dry_run);
+    }
 }
 
 void merge_sort_step(int rank, int &number, const tags &receive_tag, const tags &sending_tag, std::queue<int> &left, int dry_run) {
