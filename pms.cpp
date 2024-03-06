@@ -128,7 +128,7 @@ int run() {
         int sender_rank = rank - 1;
 
         while (true) {
-            MPI_Status status; // TODO check for status?
+            MPI_Status status;
             MPI_Recv(&number, 1, MPI_INT, sender_rank, receive_tag, MPI_COMM_WORLD, &status);
             debug("(%d <- %d) Received number %d...\n", rank, sender_rank, number)
 
