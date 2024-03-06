@@ -1,4 +1,4 @@
-NUMBERS=8
+NUMBERS=15
 PROC=$(shell python -c "import math; print(math.ceil(math.log($(NUMBERS))/math.log(2) + 1))")
 
 

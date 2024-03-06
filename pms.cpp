@@ -5,15 +5,16 @@
 
 #ifdef DEBUG
 #define debug(...) \
-    do { if (DEBUG) { fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);  \
-        fprintf(stderr, __VA_ARGS__);  \
-        fprintf(stderr, "\n"); }  \
+    do {           \
+        if (DEBUG) { \
+            fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);  \
+            fprintf(stderr, __VA_ARGS__);                    \
+        } \
     } while (0);
 #else
 #define debug(...) do {} while(0);
 #endif
 
-// TODO wierd numbers of bytes, e.g 7
 enum tags {LEFT, RIGHT};
 
 void switch_tag(enum tags *t) {
@@ -64,6 +65,7 @@ int process_received_num(int rank, tags &sending_tag, std::queue<int> &left, int
         }
         switch_tag(&receive_tag);
     } else if (number == -2) {
+        flush_the_queue(left, rank + 1, sending_tag, false);
         MPI_Send(&number, 1, MPI_INT, rank + 1, RIGHT, MPI_COMM_WORLD);
         MPI_Send(&number, 1, MPI_INT, rank + 1, LEFT, MPI_COMM_WORLD);
         return 1;
@@ -114,6 +116,7 @@ int run() {
         }
         // Mark that the all data were already sent
         int number = -2;
+        debug("(%d -> %d) Sending 2x number %d...\n", 0, 1, number)
         MPI_Send(&number, 1, MPI_INT, receiver_rank, RIGHT, MPI_COMM_WORLD);
         MPI_Send(&number, 1, MPI_INT, receiver_rank, LEFT, MPI_COMM_WORLD);
         fclose(f);
@@ -142,7 +145,6 @@ int run() {
     }
     return 0;
 }
-
 
 int main(int argc, char *argv[]) {
     MPI_Init (&argc, &argv);
