@@ -15,6 +15,19 @@
 #define debug(...) do {} while(0);
 #endif
 
+// Each process (except the first one and the last one) has two input and two output channels, which are modeled
+// by LEFT and RIGHT tags in MPI_Send/MPI_Recv functions.
+// After sending the sorted queue, process sends -1 integer to signal the end of queue. This is not really
+// necessary, because the information about the end of queue can be inferred from the rank of the process and
+// the number of numbers already received, but it makes it clearer and combined with sending -2 when all the input
+// data have been sent, it makes it easier to tell processes to stop expecting any more numbers.
+//
+// Each process creates one std::queue<int>. This is also not really necessary, because MPI_Send/MPI_Recv have
+// internal buffers that act as queues which would be enough. However, to demonstrate that the sorting starts
+// only after the whole queue have been received, the queue from the LEFT channel is copied into this internal queue
+// and once the RIGHT channel receives the first number, the sorting starts.
+
+
 enum tags {LEFT, RIGHT};
 
 void switch_tag(enum tags *t) {
@@ -25,6 +38,7 @@ void switch_tag(enum tags *t) {
     }
 }
 
+// dry_run is needed by the last processor, which should only print the data
 void send(int number, int sending_rank, const tags &sending_tag, bool dry_run) {
     if (dry_run) {
         printf("%d\n", number);
