@@ -5,4 +5,4 @@
 ## TODO
 
 - [ ] Should I check for MPIStatus?
-- [ ] Print input sequence space separated
+- [x] Print input sequence space separated

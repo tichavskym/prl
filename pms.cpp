@@ -106,6 +106,7 @@ int run() {
         enum tags tag = RIGHT;
         while (fread(&number_as_char, sizeof(unsigned char), 1, f) == 1) {
             int number = number_as_char;
+            printf("%d ", number);
             switch_tag(&tag);
             debug("(%d -> %d) Sending number %d...\n", 0, 1, number)
             MPI_Send(&number, 1, MPI_INT, receiver_rank, tag, MPI_COMM_WORLD);
@@ -114,6 +115,7 @@ int run() {
             debug("(%d -> %d) Sending number %d...\n", 0, 1, number)
             MPI_Send(&number, 1, MPI_INT, receiver_rank, tag, MPI_COMM_WORLD);
         }
+        printf("\n");
         // Mark that the all data were already sent
         int number = -2;
         debug("(%d -> %d) Sending 2x number %d...\n", 0, 1, number)
