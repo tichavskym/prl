@@ -4,4 +4,4 @@
 
 ## TODO
 
-- [ ] Should I check for MPIStatus
+- [ ] Should I check for MPIStatus?
