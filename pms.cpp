@@ -3,6 +3,16 @@
 #include <cstdlib>
 #include <queue>
 
+#ifdef DEBUG
+#define debug(...) \
+    do { if (DEBUG) { fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);  \
+        fprintf(stderr, __VA_ARGS__);  \
+        fprintf(stderr, "\n"); }  \
+    } while (0);
+#else
+#define debug(...) do {} while(0);
+#endif
+
 // TODO wierd numbers of bytes, e.g 7
 enum tags {LEFT, RIGHT};
 
@@ -90,24 +100,19 @@ int run() {
         }
 
         unsigned char number_as_char;
-        int i = 0;
         int receiver_rank = 1;
+        enum tags tag = RIGHT;
         while (fread(&number_as_char, sizeof(unsigned char), 1, f) == 1) {
             int number = number_as_char;
-            enum tags tag;
-            if (i % 2 == 0) {
-                tag = LEFT;
-            } else {
-                tag = RIGHT;
-            }
-            // TODO debug printf("(%d -> %d) Sending number %d...\n", 0, 1, number);
+            switch_tag(&tag);
+            debug("(%d -> %d) Sending number %d...\n", 0, 1, number)
             MPI_Send(&number, 1, MPI_INT, receiver_rank, tag, MPI_COMM_WORLD);
-            // TODO do I wanna keep it this way or make it alternate?
+            // Mark the end of the queue
             number = -1;
-            // TODO debug printf("(%d -> %d) Sending number %d...\n", 0, 1, number);
+            debug("(%d -> %d) Sending number %d...\n", 0, 1, number)
             MPI_Send(&number, 1, MPI_INT, receiver_rank, tag, MPI_COMM_WORLD);
-            i++;
         }
+        // Mark that the all data were already sent
         int number = -2;
         MPI_Send(&number, 1, MPI_INT, receiver_rank, RIGHT, MPI_COMM_WORLD);
         MPI_Send(&number, 1, MPI_INT, receiver_rank, LEFT, MPI_COMM_WORLD);
@@ -122,7 +127,7 @@ int run() {
         while (true) {
             MPI_Status status; // TODO check for status?
             MPI_Recv(&number, 1, MPI_INT, sender_rank, receive_tag, MPI_COMM_WORLD, &status);
-            // TODO debug print printf("(%d <- %d) Received number %d...\n", rank, sender_rank, number);
+            debug("(%d <- %d) Received number %d...\n", rank, sender_rank, number)
 
             if (rank == (size - 1)) {
                 if (last_rank_process_received_num(rank, sending_tag, left, number, receive_tag) == 1) {
