@@ -1,3 +1,6 @@
+// 1st PRL project - Pipeline Merge Sort
+// Author: Milan Tichavský <xticha09>
+
 #include "mpi.h"
 #include <cstdio>
 #include <cstdlib>
@@ -17,10 +20,12 @@
 
 // Each process (except the first one and the last one) has two input and two output channels, which are modeled
 // by LEFT and RIGHT tags in MPI_Send/MPI_Recv functions.
-// After sending the sorted queue, process sends -1 integer to signal the end of queue. This is not really
-// necessary, because the information about the end of queue can be inferred from the rank of the process and
-// the number of numbers already received, but it makes it clearer and combined with sending -2 when all the input
-// data have been sent, it makes it easier to tell processes to stop expecting any more numbers.
+//
+// After sending a sorted queue, every process sends -1 integer to signal the end of queue. This is not really
+// necessary, because the information about the end of the queue can be inferred from the rank of the process and
+// the number of numbers already received, but it marks the end of queue more clearly. Combined with sending -2 when
+// all the input data have been sent, it makes it easier to tell processes to stop expecting any more numbers, and
+// finish the program execution.
 //
 // Each process creates one std::queue<int>. This is also not really necessary, because MPI_Send/MPI_Recv have
 // internal buffers that act as queues which would be enough. However, to demonstrate that the sorting starts
@@ -38,7 +43,7 @@ void switch_tag(enum tags *t) {
     }
 }
 
-// dry_run is needed by the last processor, which should only print the data
+// dry_run is needed by the last processor, which should only print the data, not send it to some other process
 void send(int number, int sending_rank, const tags &sending_tag, bool dry_run) {
     if (dry_run) {
         printf("%d\n", number);
@@ -47,6 +52,7 @@ void send(int number, int sending_rank, const tags &sending_tag, bool dry_run) {
     }
 }
 
+// Send all remaining data in the queue to the next process
 void flush_the_queue(std::queue<int> &q, int sending_rank, const tags sending_tag, bool dry_run) {
     while (!q.empty()) {
         send(q.front(), sending_rank, sending_tag, dry_run);
